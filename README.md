@@ -8,7 +8,7 @@ It manages privacy through a unified Trust Engine featuring two core modules:
 1. **Consent Decay (Proactive Defense):** Automatically weakens and revokes app permissions over time if they remain unused.
 2. **Canary Network (Reactive Detection):** Generates unique "trap" credentials (canary tokens/aliases) for every platform you use. If that specific credential appears in spam or data leaks, it confirms exactly which platform was breached, leveraging a crowdsourced network of users for immediate alerts.
 
-## 🚀 Architecture Overview
+## Architecture Overview
 
 The system follows a modern client-server architecture with real-time event capabilities:
 
@@ -28,7 +28,7 @@ The system follows a modern client-server architecture with real-time event capa
    - When triggered, the backend instantly emits a `canary-alert` payload over the active WebSocket.
    - The frontend intercepts this payload and displays a real-time, critical alert dialog to the user with actionable insights (e.g., source of leak, records exposed).
 
-## 💻 Tech Stack
+## Tech Stack
 
 ### Frontend
 - **React.js** (v19) - Core UI framework
@@ -43,7 +43,7 @@ The system follows a modern client-server architecture with real-time event capa
 - **Socket.IO** - Real-time WebSocket server for instant alerts
 - **CORS** - Cross-origin resource sharing middleware
 
-## 🛠️ Getting Started (Running Locally)
+## Getting Started (Running Locally)
 
 To run the prototype locally on your machine, you need to start both the frontend and backend servers.
 
