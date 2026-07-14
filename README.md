@@ -6,7 +6,7 @@ TrustPulse is a comprehensive Digital Trust Dashboard designed to solve major pr
 
 It manages privacy through a unified Trust Engine featuring core modules for individuals and organizations.
 
-## Core Modules
+## Architecture Overview
 
 1. **Consent Decay (Proactive Defense):** Automatically weakens and revokes app permissions over time if they remain unused. 
 2. **Canary Network (Reactive Detection):** Generates unique trap credentials (canary tokens/aliases) for platforms. If that specific credential appears in spam or data leaks, it confirms exactly which platform was breached, leveraging a crowdsourced network for immediate alerts.
