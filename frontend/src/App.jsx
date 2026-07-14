@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Moon, Sun, ShieldAlert, Activity, PowerOff, ShieldCheck, 
   XOctagon, Smartphone, MessageCircle, Gamepad2, Activity as ActivityIcon, 
-  Shield, Lock, ChevronRight, BookOpen, AlertTriangle, CheckCircle2, X, ExternalLink, PhoneCall
+  Shield, Lock, ChevronRight, ChevronDown, ChevronUp, BookOpen, AlertTriangle, CheckCircle2, X, ExternalLink, PhoneCall
 } from 'lucide-react';
 import { io } from 'socket.io-client';
+
+import OrgSidebar from './OrgSidebar';
+import OrgOverview from './OrgOverview';
+import AppDirectory from './AppDirectory';
+import MemberDirectory from './MemberDirectory';
+import AlertsFeed from './AlertsFeed';
+import Compliance from './Compliance';
+import Billing from './Billing';
 
 const API_URL = 'http://localhost:3001';
 
@@ -50,7 +59,7 @@ const authorityResources = [
 function App() {
   const [theme, setTheme] = useState('dark');
   const [step, setStep] = useState('login'); 
-  const [activeTab, setActiveTab] = useState('consent'); // 'consent', 'canary', 'insights'
+  const [activeTab, setActiveTab] = useState('consent'); 
   const [email, setEmail] = useState('');
   const [twoFaCode, setTwoFaCode] = useState('');
   const [apps, setApps] = useState([]);
@@ -62,6 +71,10 @@ function App() {
   const [irSteps, setIrSteps] = useState([false, false, false, false]); 
   const [showComplaint, setShowComplaint] = useState(false);
   const [revokingAppId, setRevokingAppId] = useState(null);
+  const [expandedAppId, setExpandedAppId] = useState(null);
+  
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -88,6 +101,14 @@ function App() {
     fetchApps(userEmail);
     const newSocket = io(API_URL);
     setSocket(newSocket);
+    
+    // Check if user is org admin
+    if (userEmail === 'admin@acme.com') {
+      navigate('/org/org_1/overview');
+    } else {
+      navigate('/personal');
+    }
+
     newSocket.on('canary-alert', (data) => {
       setCanaryAlert(data);
     });
@@ -152,6 +173,7 @@ function App() {
     setShowComplaint(false);
     setActiveTab('consent');
     if (socket) socket.close();
+    navigate('/');
   };
 
   const resolveIncident = () => {
@@ -169,7 +191,6 @@ function App() {
 
   const allIrStepsCompleted = irSteps.every(s => s === true);
   const totalApps = apps.filter(a => a.status !== 'revoked').length;
-  const activeApps = apps.filter(a => a.status === 'active').length;
   const dormantApps = apps.filter(a => a.status === 'dormant').length;
   const healthScore = totalApps === 0 ? 100 : Math.round(((totalApps - dormantApps) / totalApps) * 100);
 
@@ -191,7 +212,7 @@ function App() {
               <motion.form key="login" initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 20, opacity: 0 }} onSubmit={handleLoginSubmit}>
                 <div style={{ marginBottom: '1rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600 }}>Work Email</label>
-                  <input type="email" className="input-field" placeholder="e.g. breach@trustpulse.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <input type="email" className="input-field" placeholder="admin@acme.com for B2B" value={email} onChange={(e) => setEmail(e.target.value)} required />
                 </div>
                 <button type="submit" className="btn" style={{ width: '100%' }}>Continue <ChevronRight size={18} /></button>
               </motion.form>
@@ -221,24 +242,34 @@ function App() {
     );
   }
 
-  // Dashboard UI
-  return (
+  const isB2B = location.pathname.includes('/org');
+
+  const header = (
+    <header className="header" style={{ marginBottom: isB2B ? '2rem' : '3rem' }}>
+      <div className="logo-area" style={{ cursor: 'pointer' }} onClick={() => navigate('/personal')}>
+        <img src="/logo.png" alt="TrustPulse Logo" />
+        <span className="logo-text">TRUSTPULSE</span>
+      </div>
+      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{email}</span>
+        {email === 'admin@acme.com' && (
+          <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.4rem 0.75rem' }} onClick={() => navigate(isB2B ? '/personal' : '/org/org_1/overview')}>
+            {isB2B ? 'Personal View' : 'Admin Console'}
+          </button>
+        )}
+        <button className="btn btn-secondary" onClick={toggleTheme} title="Toggle Theme">
+          {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+        </button>
+        <button className="btn btn-secondary" onClick={logout} style={{ padding: '0.5rem' }} title="Logout">
+          <PowerOff size={18} />
+        </button>
+      </div>
+    </header>
+  );
+
+  const PersonalDashboard = () => (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="container">
-      <header className="header">
-        <div className="logo-area">
-          <img src="/logo.png" alt="TrustPulse Logo" />
-          <span className="logo-text">TRUSTPULSE</span>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{email}</span>
-          <button className="btn btn-secondary" onClick={toggleTheme} title="Toggle Theme">
-            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-          </button>
-          <button className="btn btn-secondary" onClick={logout} style={{ padding: '0.5rem' }} title="Logout">
-            <PowerOff size={18} />
-          </button>
-        </div>
-      </header>
+      {header}
 
       <AnimatePresence>
         {canaryAlert && !showIRModal && (
@@ -246,7 +277,7 @@ function App() {
             <ShieldAlert size={40} />
             <div style={{ flex: 1 }}>
               <h4>Critical Breach Detected</h4>
-              <p>Source: {canaryAlert.source} &bull; Records Exposed: {canaryAlert.recordsExposed.toLocaleString()}</p>
+              <p>Source: {canaryAlert.source} &bull; Records Exposed: {canaryAlert.recordsExposed?.toLocaleString()}</p>
               {canaryAlert.confidenceThreshold && (
                 <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--alert-text)', fontWeight: 600 }}>
                   <ShieldCheck size={14} style={{ display: 'inline', verticalAlign: 'text-bottom', marginRight: '4px' }}/> 
@@ -297,28 +328,64 @@ function App() {
             <div className="app-list">
               <AnimatePresence>
                 {apps.filter(app => app.status !== 'revoked').map(app => (
-                  <motion.div key={app.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }} className="app-item">
-                    <div className="app-info" style={{ flex: 1 }}>
-                      <div className="app-icon">{getAppIcon(app.name)}</div>
-                      <div className="app-details">
-                        <strong>{app.name}</strong>
-                        <div className={`badge ${app.status}`}>{app.status}</div>
-                        <div className="meta">Used: {new Date(app.lastUsed).toLocaleDateString()} &bull; {app.permissions.join(', ')}</div>
+                  <motion.div key={app.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }} className="app-item" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div className="app-info" style={{ flex: 1 }}>
+                        <div className="app-icon">{getAppIcon(app.name)}</div>
+                        <div className="app-details">
+                          <strong>{app.name}</strong>
+                          <div className={`badge ${app.status}`}>{app.status}</div>
+                          <div className="meta">Used: {new Date(app.lastUsedAt || app.lastUsed).toLocaleDateString()} &bull; {app.scopes?.join(', ') || app.permissions?.join(', ')}</div>
+                        </div>
+                      </div>
+                      
+                      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: app.trustScore > 80 ? '#22c55e' : (app.trustScore > 40 ? '#eab308' : '#ef4444') }}>{app.trustScore}</div>
+                          <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>TRUST SCORE</div>
+                        </div>
+
+                        <button className="btn btn-secondary" style={{ padding: '0.5rem' }} onClick={() => setExpandedAppId(expandedAppId === app.id ? null : app.id)}>
+                          {expandedAppId === app.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                        </button>
+
+                        {revokingAppId === app.id ? (
+                          <span className="meta" style={{ color: 'var(--alert-text)', width: '120px', textAlign: 'right' }}>Redirecting to OS Settings...</span>
+                        ) : (
+                          <button className="btn btn-secondary" style={{ padding: '0.5rem' }} onClick={() => handleRevokeClick(app.id)} title="Revoke Access">
+                            <XOctagon size={18} />
+                          </button>
+                        )}
                       </div>
                     </div>
-                    
-                    <div style={{ marginLeft: 'auto', marginRight: '1.5rem', textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: app.trustScore > 80 ? '#22c55e' : (app.trustScore > 40 ? '#eab308' : '#ef4444') }}>{app.trustScore}</div>
-                      <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>TRUST SCORE</div>
-                    </div>
 
-                    {revokingAppId === app.id ? (
-                      <span className="meta" style={{ color: 'var(--alert-text)', width: '120px', textAlign: 'right' }}>Redirecting to OS Settings...</span>
-                    ) : (
-                      <button className="btn btn-secondary" style={{ padding: '0.5rem' }} onClick={() => handleRevokeClick(app.id)} title="Revoke Access">
-                        <XOctagon size={18} />
-                      </button>
-                    )}
+                    <AnimatePresence>
+                      {expandedAppId === app.id && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)' }}>
+                          <h4 style={{ fontSize: '0.85rem', marginBottom: '0.5rem' }}>Trust Score Breakdown</h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div>
+                              <div className="meta">Data Sensitvity Penalty</div>
+                              <div style={{ width: '100%', height: '4px', background: 'var(--bg-secondary)', marginTop: '4px', borderRadius: '2px' }}>
+                                <div style={{ width: `30%`, height: '100%', background: 'var(--text-primary)', borderRadius: '2px' }} />
+                              </div>
+                            </div>
+                            <div>
+                              <div className="meta">Scope Breadth</div>
+                              <div style={{ width: '100%', height: '4px', background: 'var(--bg-secondary)', marginTop: '4px', borderRadius: '2px' }}>
+                                <div style={{ width: `60%`, height: '100%', background: 'var(--text-primary)', borderRadius: '2px' }} />
+                              </div>
+                            </div>
+                            <div>
+                              <div className="meta">Inactivity Time</div>
+                              <div style={{ width: '100%', height: '4px', background: 'var(--bg-secondary)', marginTop: '4px', borderRadius: '2px' }}>
+                                <div style={{ width: app.status === 'dormant' ? '100%' : '10%', height: '100%', background: 'var(--text-primary)', borderRadius: '2px' }} />
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -373,7 +440,6 @@ function App() {
         {/* Module 3: Security Insights & Resources */}
         {activeTab === 'insights' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ gridColumn: '1 / -1' }}>
-            {/* Articles */}
             <div className="card" style={{ marginBottom: '2rem' }}>
               <div className="card-header">
                 <BookOpen size={24} />
@@ -394,7 +460,6 @@ function App() {
               </div>
             </div>
 
-            {/* Emergency Resources */}
             <div className="card">
               <div className="card-header">
                 <ShieldAlert size={24} />
@@ -529,12 +594,7 @@ function App() {
               </div>
 
               <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
-                <button 
-                  className="btn" 
-                  disabled={!allIrStepsCompleted} 
-                  style={{ opacity: allIrStepsCompleted ? 1 : 0.5, cursor: allIrStepsCompleted ? 'pointer' : 'not-allowed' }}
-                  onClick={resolveIncident}
-                >
+                <button className="btn" disabled={!allIrStepsCompleted} style={{ opacity: allIrStepsCompleted ? 1 : 0.5, cursor: allIrStepsCompleted ? 'pointer' : 'not-allowed' }} onClick={resolveIncident}>
                   Resolve Incident
                 </button>
               </div>
@@ -544,6 +604,32 @@ function App() {
       </AnimatePresence>
 
     </motion.div>
+  );
+
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/personal" replace />} />
+      <Route path="/personal" element={<PersonalDashboard />} />
+      <Route path="/org/:orgId/*" element={
+        <div className="b2b-layout">
+          <OrgSidebar orgId="org_1" />
+          <div className="b2b-content">
+            {header}
+            <div style={{ padding: '0 2rem' }}>
+              <Routes>
+                <Route path="overview" element={<OrgOverview orgId="org_1" api_url={API_URL} />} />
+                <Route path="apps" element={<AppDirectory orgId="org_1" api_url={API_URL} />} />
+                <Route path="members" element={<MemberDirectory orgId="org_1" api_url={API_URL} />} />
+                <Route path="alerts" element={<AlertsFeed orgId="org_1" socket={socket} api_url={API_URL} />} />
+                <Route path="compliance" element={<Compliance orgId="org_1" api_url={API_URL} />} />
+                <Route path="billing" element={<Billing />} />
+                <Route path="*" element={<Navigate to="overview" replace />} />
+              </Routes>
+            </div>
+          </div>
+        </div>
+      } />
+    </Routes>
   );
 }
 
